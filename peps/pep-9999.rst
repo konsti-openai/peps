@@ -19,7 +19,7 @@ This PEP extends :pep:`825` by defining how variant properties are
 governed and how their compatibility is determined. This is done either
 via static feature and feature value compatibility lists specified in
 the variant metadata, or by querying opt-in plugins that are Python
-packages, but can also be vendored or reimplemented by the tools. A
+packages but can also be vendored or reimplemented by the tools. A
 static list can also be provided in place of querying the plugins.
 Additionally, an ABI Dependency Variant Provider is defined to
 facilitate builds of the same package against different dependency
@@ -96,7 +96,7 @@ endpoint is either explicitly specified or inferred from the first
 dependency string. The canonical way of querying the list of compatible
 features and their values is then to install the specified packages and
 call this endpoint. The combination of dependency strings and the API
-endpoint are used to uniquely identify the provider, while the
+endpoint is used to uniquely identify the provider, while the
 respective version constraints can be used to indicate the minimum
 versions emitting variant properties used in the package.
 
@@ -120,7 +120,7 @@ namespace:
 1. The tool SHOULD implement a way for the user to provide a static list
    of compatible features and their values for a particular provider.
    Standardizing this format is left to a future PEP. If the user
-   provided said list, the tool MUST use it exclusively. Otherwise,
+   provides such a list, the tool MUST use it exclusively. Otherwise,
    proceed to step 2.
 
 2. The tool MUST read the ``optional`` key from the `provider
@@ -143,8 +143,8 @@ namespace:
    provided, the tool MUST read the ``requires`` and ``plugin-api`` keys
    in the `provider information`_ dictionary to determine the packages
    providing the compatibility information. If the tool provides a
-   secure implementation of the specific providers, it SHOULD obtain
-   the list from their implementation. Otherwise, proceed to step 6.
+   secure implementation of the specific provider, it SHOULD obtain
+   the list from that implementation. Otherwise, proceed to step 6.
 
 6. The tool SHOULD provide a way for the user to permit installing
    specific provider packages. It MUST NOT install or use any provider
@@ -195,7 +195,7 @@ Provider information
 ''''''''''''''''''''
 
 Variant metadata in a variant wheel must include a ``providers`` key. It
-corresponds to a dictionary, in which the keys are namespaces, the
+corresponds to a dictionary, in which the keys are namespaces and the
 values are dictionaries with provider information. It specifies how to
 install and use variant providers. All the namespaces found in
 ``default-priorities.namespace`` MUST be listed in this dictionary, and
@@ -209,13 +209,13 @@ information dictionary:
 
 - ``static-properties: dict[str, list[str]]``: The dictionary of static
   variant compatibility data. The keys correspond to feature names,
-  while the values are the ordered list of compatible feature values.
+  while each value is an ordered list of compatible feature values.
   Since the dictionaries in JSON are unsorted, if more than one key is
   specified, then the order for all features MUST be specified in the
   ``feature-order`` key.
 
 - ``requires: list[str]``: A list of one or more package
-  :ref:`dependency specifiers <dependency-specifiers>`, that are used to
+  :ref:`dependency specifiers <dependency-specifiers>` that are used to
   install the provider plugin. If the dependency specifiers include
   environment markers, these are evaluated against the environment where
   the plugin is being installed, and the requirements for which the
@@ -291,7 +291,7 @@ from :pep:`825` can be extended in the following way:
         // MUST list all namespaces used.
 
         "aarch64": {
-          // Specifies provider plugin package; the plugin will be queried
+          // Specifies a provider plugin package; the plugin will be queried
           // at install time. REQUIRED, mutually exclusive with the other
           // required keys.
           "requires": ["provider-variant-aarch64 >=0.0.1"]
@@ -301,7 +301,7 @@ from :pep:`825` can be extended in the following way:
         },
 
         "abi": {
-          // Specifies that this a builtin provider. REQUIRED, mutually
+          // Specifies that this is a builtin provider. REQUIRED, mutually
           // exclusive with the other required keys.
           "builtin": "abi_dependency"
         },
@@ -311,8 +311,8 @@ from :pep:`825` can be extended in the following way:
           // necessary. REQUIRED, mutually exclusive with the other required
           // keys.
           "static-properties": {
-            // Values are ordered -- by default, openblas variant is preferred
-            // over mkl, and accelerate over the other two.
+            // Values are ordered -- by default, the openblas variant is
+            // preferred over mkl, and accelerate over the other two.
             "library": ["accelerate", "openblas", "mkl"]
           },
 
@@ -321,7 +321,7 @@ from :pep:`825` can be extended in the following way:
         },
 
         "x86_64": {
-          // Specifies provider plugin package; the plugin will be queried
+          // Specifies a provider plugin package; the plugin will be queried
           // at install time. REQUIRED, mutually exclusive with the other
           // required keys.
           "requires": [
@@ -343,12 +343,12 @@ from :pep:`825` can be extended in the following way:
 Provider plugin API
 -------------------
 
-High level design
+High-level design
 '''''''''''''''''
 
 To make it easier to discover and install plugins, they SHOULD be made
 available via the sources that are used when installing the package
-requiring them. For example, the packages published on PyPI ought to
+requiring them. For example, packages published on PyPI ought to
 only list providers that are only available on PyPI as well.
 
 Except for variant providers using the ``static-properties`` and
@@ -365,7 +365,7 @@ behavior with the published provider. The reimplementations and vendored
 providers MUST be matched to the published providers using the
 ``requires`` and ``plugin-api`` keys, rather than namespaces.
 
-A plugin implemented as Python package exposes callables that are called
+A plugin implemented as a Python package exposes callables that are called
 via:
 
 .. code:: text
@@ -430,14 +430,14 @@ point:
     [project.entry-points.variant_plugins]
     x86_64 = "provider_variant_x86_64"
 
-A tool that facilitates such discovery mechanism MUST collect all entry
+A tool that facilitates such a discovery mechanism MUST collect all entry
 points in the ``variant_plugins`` group and use their respective values
-to determine the API endpoints to call. They MAY use the entry point
+to determine the API endpoints to call. It MAY use the entry point
 name to recommend the namespace to use, and the associated package
 distribution metadata to determine which package provides a given
 plugin.
 
-For example, with ``provider-variant-x86-64==0.0.3`` package installing
+For example, with the ``provider-variant-x86-64==0.0.3`` package installing
 the entry point shown above, ``variantlib update-pyproject-toml --add
 x86_64`` would add the following metadata to ``pyproject.toml``:
 
@@ -541,17 +541,17 @@ Example implementation
         multi_value: bool
 
 
-    # internal -- provided for illustrative purpose
+    # internal -- provided for illustrative purposes
     _ALL_GPUS = ["narf", "poit", "zort"]
 
 
     def _get_current_version() -> int:
-        """Returns currently installed runtime version"""
+        """Returns the currently installed runtime version"""
         ...  # implementation not provided
 
 
     def _is_gpu_available(codename: str) -> bool:
-        """Is specified GPU installed?"""
+        """Is the specified GPU installed?"""
         ...  # implementation not provided
 
 
@@ -590,9 +590,9 @@ Example implementation
 Future extensions
 '''''''''''''''''
 
-The future versions of this specification, as well as third-party
+Future versions of this specification as well as third-party
 extensions MAY introduce additional attributes on the plugin instances.
-The implementations SHOULD ignore them.
+Implementations SHOULD ignore them.
 
 For best compatibility, all private attributes SHOULD be prefixed with
 an underscore (``_``) character to avoid incidental conflicts with
@@ -603,7 +603,7 @@ Builtin providers
 -----------------
 
 Some compatibility checks require integration with a tool's internals,
-such as its dependency resolver, that the plugin API does not expose.
+such as its dependency resolver, which the plugin API does not expose.
 Builtin providers handle these checks directly within the tool. They
 are defined in PEPs, and their identifiers are used in the ``builtin``
 key in the `provider information`_ dictionary.
@@ -647,14 +647,15 @@ rules as wheel files, as found in the
 :ref:`packaging:wheel-file-name-spec` of the Binary Distribution Format
 specification.
 
-The feature version MUST contain up to three version components, that
-are matched against the installed version same as the ``=={value}.*``
-specifier. Notably, trailing zeroes match versions with fewer components
-(e.g. ``2.0`` matches release ``2`` but not ``2.1``). This also implies
-that the property values have different semantics than PEP 440 versions,
-in particular ``2``, ``2.0`` and ``2.0.0`` represent different ranges.
+The feature version MUST contain up to three version components, which
+are matched against the installed version in the same way as the
+``=={value}.*`` specifier. Notably, trailing zeroes match versions with
+fewer components (e.g. ``2.0`` matches release ``2`` but not ``2.1``).
+This also implies that the property values have different semantics than
+PEP 440 versions, in particular ``2``, ``2.0`` and ``2.0.0`` represent
+different ranges.
 
-Versions with nonzero epoch are not supported.
+Versions with a nonzero epoch are not supported.
 
 ==================================== ==================
 Variant Property                     Matching Rule
@@ -665,8 +666,8 @@ Variant Property                     Matching Rule
 ==================================== ==================
 
 Multiple variant properties with the same feature name can be used to
-indicate wheels compatible with multiple providing package versions,
-e.g.:
+indicate wheels compatible with multiple versions of the providing
+package, e.g.:
 
 .. code:: text
 
@@ -685,8 +686,8 @@ The specification proposes a plugin mechanism using Python packages,
 with the interface inspired by :pep:`517`. Such a mechanism has a few
 advantages:
 
-- The individual plugins can be governed independently, by the
-  stakeholders having necessary knowledge and hardware. Additional
+- The individual plugins can be governed independently by the
+  stakeholders with the necessary knowledge and hardware. Additional
   compatibility axes (new CPUs, GPUs) do not impose direct maintenance
   costs on tools interacting with variant wheels, nor on
   centrally-maintained libraries such as ``packaging``.
@@ -699,7 +700,7 @@ advantages:
   multiple tools, and released to the public after proving the concept.
 
 At the same time, it is understood that installing additional Python
-packages and running the code from them introduces additional attack
+packages and running the code from them introduce an additional attack
 vector (as discussed in `security implications`_). For this reason,
 plugin packages are entirely opt-in, and a few mechanisms are provided
 to improve the user experience without compromising security:
@@ -750,7 +751,7 @@ The `ABI Dependency Variant Provider`_ is defined separately, as
 it needs to interact with the dependency resolver. To avoid adding
 significant complexity to the plugin API and at the same time
 restricting the actual implementation, it has been made a special case.
-It is entirely optional to avoid adding maintenance burden to tool
+It is entirely optional to avoid adding a maintenance burden to tool
 maintainers. At the same time, provisions were made to permit creating
 further `builtin providers`_ in the future, and to keep the provider
 information consistent between all types of providers.
@@ -770,21 +771,21 @@ This PEP introduces a plugin system for querying the platform
 capabilities. Tools may install these packages and execute the code
 within them during dependency resolution or wheel processing. This
 elevates the supply-chain attack potential by introducing two new points
-for malicious actors to inject arbitrary code payload:
+for malicious actors to inject arbitrary code payloads:
 
 1. Publishing a version of a variant provider plugin or one of its
    dependencies with malicious code.
-2. Introducing a malicious variant provider plugin in an existing
+2. Introducing a malicious variant provider plugin in existing
    package metadata.
 
-While such attacks can already be done to the package's dependencies, it
-is prudent not to add another attack surface.
+While such attacks can already be carried out against a package's
+dependencies, it is prudent not to add another attack surface.
 
 A similar issue already exists in the packaging ecosystem when packages
 are installed from source distributions, with build backends and other
-build dependencies are being installed and executed by default. Users
+build dependencies being installed and executed by default. Users
 are often unaware of this risk. Securing build dependencies is
-non-trivial and not commonly done. More commonly, users opt-out of
+non-trivial and not commonly done. More commonly, users opt out of
 source distribution builds altogether instead.
 
 Unfortunately, an opt-in system creates a risk of security fatigue.
@@ -800,24 +801,24 @@ How to Teach This
 =================
 
 This PEP is focused on installing variant wheels. The primary source of
-information for the users will be the user interface of installers,
+information for users will be the user interface of installers,
 supplemented by their documentation and installation instructions of
 specific packages publishing variant wheels. The documentation present
 on ``packaging.python.org`` will need to be updated as well.
 
-Ideally, in the most common use cases variants will work out of the box
+Ideally, in the most common use cases, variants will work out of the box
 and non-expert users will not need to be aware of them, much like they
 do not need to be aware of Platform compatibility tags. Some packages
 will be able to simplify their installation instructions to a single
 command covering the different hardware accelerators.
 
 Expert users will need guidance that will largely be specific to
-particular installer implementation, as it involves user interface
+a particular installer implementation, as it involves user interface
 decisions. The following topics may need to be covered, depending on the
 features implemented by the installer:
 
 - how to enable installing untrusted variant provider packages, and what
-  are the security implications of that
+  the security implications of that are
 - how to enable optional providers
 - how to generate and provide static compatibility data, enabling
   deployment for remote targets
